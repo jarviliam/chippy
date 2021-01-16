@@ -15,4 +15,6 @@ int main(int argc, char **argv) {
     printf("SDL Video Error");
     return 1;
   }
+  cpu.step();
+  return 0;
 }
