@@ -1,11 +1,15 @@
 #include "cpu.hpp"
+#include <fstream>
 #include <stdlib.h>
 
 Chippy::Chippy(){
 
 };
+Chippy::~Chippy(){
 
-bool Chippy::start() {
+};
+
+bool Chippy::prepare() {
   pc = 0x200; // First 512 bytes are reserved
 
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -19,19 +23,72 @@ bool Chippy::start() {
     printf("Failed to make Window");
     return false;
   };
-
-  SDL_Surface *surface = SDL_GetWindowSurface(window);
-  if (!surface) {
-    printf("Failed to make Surface");
+  // SDL_Surface *surface = SDL_GetWindowSurface(window);
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  if (!renderer) {
+    printf("Failed to make Renderer\n");
+    return false;
   }
+  texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888,
+                              SDL_TEXTUREACCESS_STATIC, Chippy::screen_width,
+                              Chippy::screen_height);
+  if (!texture) {
+    printf("Failed to make Texture\n");
+    return false;
+  }
+
+  // Start Up Memory;
   return true;
 }
-void Chippy::exit(){};
 
-void Chippy::step() {
-  SDL_Event e;
+void Chippy::begin() {
   bool loop = true;
+  SDL_Event e;
+  while (loop) {
+    while (SDL_PollEvent(&e) > 0) {
+      switch (e.type) {
+      case SDL_QUIT:
+        loop = false;
+        break;
+      case SDL_KEYDOWN: {
+        const SDL_Keycode key = e.key.keysym.sym;
+        if (key == SDLK_ESCAPE)
+          loop = false;
+        if (keyboardmap.find(key) != keyboardmap.end()) {
+          keyboardmap[key] = 1;
+        }
+        break;
+      };
+      case SDL_KEYUP: {
+        const SDL_Keycode key = e.key.keysym.sym;
+        if (keyboardmap.find(key) != keyboardmap.end()) {
+          keyboardmap[key] = 0;
+        }
+        break;
+      }
+      default:
+        break;
+      };
+    };
+    cycle();
 
+    if (drawFlag) {
+    printf("Draw Flag\n");
+      // SDL_UpdateTexture
+      SDL_UpdateTexture(texture, NULL, &graphics, Chippy::screen_width);
+      SDL_RenderCopy(renderer, texture, NULL, NULL);
+      SDL_RenderPresent(renderer);
+      drawFlag = false;
+    }
+  };
+}
+
+void Chippy::exit() {
+  SDL_DestroyWindow(window);
+  SDL_Quit();
+};
+
+void Chippy::cycle() {
   /**
    * Fetch Opcode.
    * Since Instructions are 16bit
@@ -66,8 +123,11 @@ void Chippy::step() {
     switch (n) {
     // Clear Screen
     case 0x0000:
-      printf("Clear Screen Inst");
+      printf("CLR\n");
+      SDL_SetRenderDrawColor(renderer,0,0,0,0);
+      SDL_RenderClear(renderer);
       pc += 2;
+      drawFlag = true;
       break;
       // Returns from a subroutine
     case 0x000E:
@@ -80,7 +140,7 @@ void Chippy::step() {
     break;
     // Jumps to address NNN
   case 0x1000:
-    printf("JMP %X\n", nnn);
+     //printf("JMP %X\n", nnn);
     pc = nnn;
     break;
     // Calls Subroutine at NNN
@@ -200,6 +260,7 @@ void Chippy::step() {
     }
     break;
   case 0x9000:
+    printf("SKIP \n");
     // Skips the next instruction if VX doesn't equal VY. (Usually the next
     // instruction is a jump to skip a code block)
     if (reg[x] != reg[y]) {
@@ -209,15 +270,18 @@ void Chippy::step() {
     }
     break;
   case 0xA000:
+    printf("SETI \n");
     // Sets I to the address NNN.
     i = nnn;
     pc += 2;
     break;
   case 0xB000:
+    printf("SETNNN \n");
     // Jumps to the address NNN plus V0.
     pc = nnn + reg[0];
     break;
   case 0xC000:
+    printf("RAND \n");
     // Sets VX to the result of a bitwise and operation on a random number
     // (Typically: 0 to 255) and NN.
     reg[x] = (rand() % 0xFF) & nn;
@@ -249,6 +313,7 @@ void Chippy::step() {
       }
     }
     // Have to Draw
+    drawFlag = true;
     pc += 2;
     break;
   };
@@ -383,29 +448,21 @@ void Chippy::step() {
   default:
     printf("Unknown OPCODE 0x%X\n", opcode);
   };
-
-  while (loop) {
-    while (SDL_PollEvent(&e) > 0) {
-      switch (e.type) {
-      case SDL_QUIT:
-        loop = false;
-        break;
-      case SDL_KEYDOWN: {
-        const auto key = e.key.keysym.sym;
-
-        if (key == SDLK_ESCAPE)
-          loop = false;
-        if (keyboardmap.find(e.key.keysym.sym) != keyboardmap.end())
-          keyPress(keybind[key]);
-        break;
-      };
-      }
-      SDL_UpdateWindowSurface(window);
-    };
-  }
 };
 
-void Chippy::keyPress(const byte &key){
+bool Chippy::loadROM(const std::string &rom) {
+  std::ifstream rm(rom, std::ios::binary);
 
+  if (!rm.is_open() || rm.bad()) {
+    return false;
+  };
+  SDL_SetWindowTitle(window, "Test");
+  std::string title =
+      rom.substr(rom.find_last_of('/') + 1, rom.find_first_of(".ch8"));
+
+  std::copy(std::istreambuf_iterator<char>(rm),
+            std::istreambuf_iterator<char>(), memory.begin() + 0x0200);
+
+  rm.close();
+  return true;
 };
-bool Chippy::loadROM(const std::string &rom) { return true; };

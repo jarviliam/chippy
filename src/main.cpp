@@ -1,6 +1,6 @@
 #include "cpu.hpp"
 #include <iostream>
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
   if (argc < 2) {
     std::cout << "Arg issue" << '\n';
     return 1;
@@ -11,10 +11,14 @@ int main(int argc, char **argv) {
     return 1;
   };
 
-  if (!cpu.start()) {
+  if (!cpu.prepare()) {
     printf("SDL Video Error");
     return 1;
   }
-  cpu.step();
+  if(!cpu.loadROM(argv[1])){
+    printf("ROM LOAD ERR");
+    return 1;
+  };
+  cpu.begin();
   return 0;
 }

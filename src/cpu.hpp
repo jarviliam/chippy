@@ -24,12 +24,17 @@ struct Chippy final {
   // Stack Pointer
   address stp;
   // mutable std::stack<address> stp;
+  bool drawFlag = false;
 
   // Current OPCODE
   address opcode;
 
+  static constexpr unsigned int upscale = 20;
+  static constexpr unsigned int screen_width = 64 * upscale;
+  static constexpr unsigned int screen_height = 32 * upscale;
+
   // Graphics Pixels
-  std::array<byte, 64 * 32> graphics{};
+  std::array<byte, (upscale * 64) * (upscale * 32)> graphics{};
   // Keyboard
   std::array<byte, 16> keybind{};
   const std::array<uint8_t, 16 * 5> fonts{
@@ -51,26 +56,23 @@ struct Chippy final {
       0xF0, 0x80, 0xF0, 0x80, 0x80  // F
   };
 
-  std::unordered_map<SDL_KeyCode, byte> keyboardmap{
+  std::unordered_map<SDL_Keycode, byte> keyboardmap{
       {SDLK_1, 0x1}, {SDLK_2, 0x2}, {SDLK_3, 0x3}, {SDLK_4, 0xC},
       {SDLK_q, 0x4}, {SDLK_w, 0x5}, {SDLK_e, 0x6}, {SDLK_r, 0xD},
       {SDLK_a, 0x7}, {SDLK_s, 0x8}, {SDLK_d, 0x9}, {SDLK_f, 0xE},
       {SDLK_z, 0xA}, {SDLK_x, 0x0}, {SDLK_c, 0xB}, {SDLK_v, 0xF}};
 
-  static constexpr unsigned int upscale = 20;
-  static constexpr unsigned int screen_width = 64 * upscale;
-  static constexpr unsigned int screen_height = 32 * upscale;
-
   Chippy();
   ~Chippy();
   [[nodiscard]] bool loadROM(const std::string &rom);
-  bool start();
-  void step();
+  bool prepare();
+  void begin();
+  void cycle();
   void exit();
-
-  void keyPress(const byte &);
 
 private:
   // SDL RELATED
   SDL_Window *window;
+  SDL_Renderer *renderer;
+  SDL_Texture *texture;
 };
