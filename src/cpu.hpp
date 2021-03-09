@@ -28,13 +28,6 @@ struct Chippy final {
 
   // Current OPCODE
   address opcode;
-
-  static constexpr unsigned int upscale = 20;
-  static constexpr unsigned int screen_width = 64 * upscale;
-  static constexpr unsigned int screen_height = 32 * upscale;
-
-  // Graphics Pixels
-  std::array<byte, (upscale * 64) * (upscale * 32)> graphics{};
   // Keyboard
   std::array<byte, 16> keybind{};
   const std::array<uint8_t, 16 * 5> fonts{
@@ -71,8 +64,5 @@ struct Chippy final {
   void exit();
 
 private:
-  // SDL RELATED
-  SDL_Window *window;
-  SDL_Renderer *renderer;
-  SDL_Texture *texture;
+  Screen screen;
 };

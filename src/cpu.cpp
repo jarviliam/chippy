@@ -16,27 +16,6 @@ bool Chippy::prepare() {
     printf("Invalid SDL Video");
     return false;
   }
-  window = SDL_CreateWindow("Chippy", SDL_WINDOWPOS_CENTERED,
-                            SDL_WINDOWPOS_CENTERED, Chippy::screen_width,
-                            Chippy::screen_height, SDL_WINDOW_SHOWN);
-  if (!window) {
-    printf("Failed to make Window");
-    return false;
-  };
-  // SDL_Surface *surface = SDL_GetWindowSurface(window);
-  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-  if (!renderer) {
-    printf("Failed to make Renderer\n");
-    return false;
-  }
-  texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888,
-                              SDL_TEXTUREACCESS_STATIC, Chippy::screen_width,
-                              Chippy::screen_height);
-  if (!texture) {
-    printf("Failed to make Texture\n");
-    return false;
-  }
-
   // Start Up Memory;
   return true;
 }
@@ -73,20 +52,14 @@ void Chippy::begin() {
     cycle();
 
     if (drawFlag) {
-    printf("Draw Flag\n");
-      // SDL_UpdateTexture
-      SDL_UpdateTexture(texture, NULL, &graphics, Chippy::screen_width);
-      SDL_RenderCopy(renderer, texture, NULL, NULL);
-      SDL_RenderPresent(renderer);
+      printf("Draw Flag\n");
+      screen.update();
       drawFlag = false;
     }
   };
 }
 
-void Chippy::exit() {
-  SDL_DestroyWindow(window);
-  SDL_Quit();
-};
+void Chippy::exit(){};
 
 void Chippy::cycle() {
   /**
@@ -124,7 +97,7 @@ void Chippy::cycle() {
     // Clear Screen
     case 0x0000:
       printf("CLR\n");
-      SDL_SetRenderDrawColor(renderer,0,0,0,0);
+      SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
       SDL_RenderClear(renderer);
       pc += 2;
       drawFlag = true;
@@ -140,14 +113,16 @@ void Chippy::cycle() {
     break;
     // Jumps to address NNN
   case 0x1000:
-     //printf("JMP %X\n", nnn);
+    printf("JMP %X\n", nnn);
+    printf("JMPPC %X\n", pc);
     pc = nnn;
     break;
     // Calls Subroutine at NNN
   case 0x2000:
     printf("CALL %X\n", nnn);
+    // TODO: Figure
+    //++stp;           // Increment Pointer
     stack[stp] = pc; // Store Return Address
-    ++stp;           // Increment Pointer
     pc = nnn;        // Move the Counter to Address
     break;
     // Skips the next Instruction if VX = NN
@@ -301,18 +276,11 @@ void Chippy::cycle() {
     uint8_t regy = reg[y];
     uint8_t pixel;
     reg[15] = 0;
-    for (int j = 0; j < n; j++) {
-      pixel = memory[i + j];
-      for (int k = 0; k < 8; k++) {
-        if (0 != (pixel & (0x80 >> k))) {
-          if (1 == graphics[regx + k + ((regy + j) * 64)]) {
-            reg[15] = 1;
-          };
-          graphics[regx + k + ((regy + j) * 64)] ^= 1;
-        };
-      }
+    byte flip = screen.toggle(memory, n, i, regx, regy);
+    if (1 == flip) {
+      reg[15] = 1;
     }
-    // Have to Draw
+    // Signal DrawFlag
     drawFlag = true;
     pc += 2;
     break;
@@ -456,8 +424,7 @@ bool Chippy::loadROM(const std::string &rom) {
   if (!rm.is_open() || rm.bad()) {
     return false;
   };
-  SDL_SetWindowTitle(window, "Test");
-  std::string title =
+  screen.updateTitle("Rom") std::string title =
       rom.substr(rom.find_last_of('/') + 1, rom.find_first_of(".ch8"));
 
   std::copy(std::istreambuf_iterator<char>(rm),
