@@ -2,16 +2,13 @@
 #include <fstream>
 #include <stdlib.h>
 
-Chippy::Chippy(){
-
-};
+Chippy::Chippy() { this->screen = new Screen(); };
 Chippy::~Chippy(){
 
 };
 
 bool Chippy::prepare() {
   pc = 0x200; // First 512 bytes are reserved
-
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     printf("Invalid SDL Video");
     return false;
@@ -53,7 +50,7 @@ void Chippy::begin() {
 
     if (drawFlag) {
       printf("Draw Flag\n");
-      screen.update();
+      this->screen->update();
       drawFlag = false;
     }
   };
@@ -97,8 +94,7 @@ void Chippy::cycle() {
     // Clear Screen
     case 0x0000:
       printf("CLR\n");
-      SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-      SDL_RenderClear(renderer);
+      this->screen->clear();
       pc += 2;
       drawFlag = true;
       break;
@@ -276,7 +272,7 @@ void Chippy::cycle() {
     uint8_t regy = reg[y];
     uint8_t pixel;
     reg[15] = 0;
-    byte flip = screen.toggle(memory, n, i, regx, regy);
+    byte flip = this->screen->toggle(memory, n, i, regx, regy);
     if (1 == flip) {
       reg[15] = 1;
     }
@@ -424,7 +420,8 @@ bool Chippy::loadROM(const std::string &rom) {
   if (!rm.is_open() || rm.bad()) {
     return false;
   };
-  screen.updateTitle("Rom") std::string title =
+  this->screen->updateTitle("Rom");
+  std::string title =
       rom.substr(rom.find_last_of('/') + 1, rom.find_first_of(".ch8"));
 
   std::copy(std::istreambuf_iterator<char>(rm),

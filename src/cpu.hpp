@@ -1,3 +1,4 @@
+#include "screen.hpp"
 #include <SDL2/SDL.h>
 #include <array>
 #include <stdint.h>
@@ -64,5 +65,5 @@ struct Chippy final {
   void exit();
 
 private:
-  Screen screen;
+  Screen *screen;
 };
