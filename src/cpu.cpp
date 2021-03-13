@@ -21,12 +21,14 @@ void Chippy::begin() {
   bool loop = true;
   SDL_Event e;
   while (loop) {
+    printf("Loop \n");
     while (SDL_PollEvent(&e) > 0) {
       switch (e.type) {
       case SDL_QUIT:
         loop = false;
         break;
       case SDL_KEYDOWN: {
+            printf("Find Key");
         const SDL_Keycode key = e.key.keysym.sym;
         if (key == SDLK_ESCAPE)
           loop = false;
@@ -36,6 +38,7 @@ void Chippy::begin() {
         break;
       };
       case SDL_KEYUP: {
+            printf("Find Key2");
         const SDL_Keycode key = e.key.keysym.sym;
         if (keyboardmap.find(key) != keyboardmap.end()) {
           keyboardmap[key] = 0;
@@ -46,6 +49,7 @@ void Chippy::begin() {
         break;
       };
     };
+    printf("Before Cycle \n");
     cycle();
 
     if (drawFlag) {
@@ -59,6 +63,7 @@ void Chippy::begin() {
 void Chippy::exit(){};
 
 void Chippy::cycle() {
+    printf("Cycle");
   /**
    * Fetch Opcode.
    * Since Instructions are 16bit
