@@ -1,13 +1,54 @@
+#ifndef CPU_H
+#define CPU_H
+#include "Controller.hpp"
+#include "Ops.hpp"
 #include "screen.hpp"
-#include <SDL2/SDL.h>
 #include <array>
+#include <cstdint>
 #include <stdint.h>
 #include <string>
 #include <unordered_map>
 
 #define MEMSIZE 4096
-typedef uint8_t byte;
-typedef uint16_t address;
+typedef std::uint8_t byte;
+typedef std::uint16_t address;
+class CPU {
+public:
+  CPU();
+  CPU(Screen *screen);
+  void loadROM(std::string rom_path);
+  void step();
+  bool shouldDraw() { return drawFlag; };
+  void toggleDraw() { drawFlag = !drawFlag; };
+  void toggleDraw(bool val) { drawFlag = val; };
+  void reset();
+
+  address getPC() { return pc; }
+
+protected:
+  mutable std::array<byte, 16> registers{}; // Vx
+  mutable address i_reg;                    // I reg
+  mutable std::array<byte, MEMSIZE> memory;
+  address pc;
+  std::array<address, 16> stack{};
+  address stp = 0;
+  address curr;
+
+  byte delayTimer;
+  byte soundTimer;
+
+  int m_cycle;
+
+  Controller *m_controller;
+  Screen *m_screen;
+
+  address readAddress(address a);
+  OpCode getOpcode(address a);
+  byte getVxFromAddress(address a) { return a >> 8 & 0x000F; };
+  byte getVyFromAddress(address a) { return a >> 4 & 0x000F; };
+
+  bool drawFlag;
+};
 
 struct Chippy final {
   // 16 Registers
@@ -23,7 +64,7 @@ struct Chippy final {
   // Stack
   std::array<address, 16> stack{};
   // Stack Pointer
-  address stp;
+  address stp{0};
   // mutable std::stack<address> stp;
   bool drawFlag = false;
 
@@ -67,3 +108,5 @@ struct Chippy final {
 private:
   Screen *screen;
 };
+
+#endif // !CPU_H

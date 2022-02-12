@@ -1,18 +1,19 @@
 #include "screen.hpp"
+#include "SDL_pixels.h"
+#include "SDL_render.h"
+#include "SDL_stdinc.h"
+#include <algorithm>
 #include <iostream>
 
 Screen::Screen() {
   window = SDL_CreateWindow("Chippy", SDL_WINDOWPOS_CENTERED,
-                            SDL_WINDOWPOS_CENTERED, Screen::screen_width,
-                            Screen::screen_height, SDL_WINDOW_SHOWN);
+                            SDL_WINDOWPOS_CENTERED, screen_width * upscale,
+                            screen_height * upscale, SDL_WINDOW_SHOWN);
 
-  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-  texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888,
-                              SDL_TEXTUREACCESS_STATIC, Screen::screen_width,
-                              Screen::screen_height);
-  for (int i = 0; i < WIDTH * HEIGHT; ++i) {
-    graphics[0] = 0;
-  }
+  renderer = SDL_CreateRenderer(window, -1, 0);
+
+  texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
+                              SDL_TEXTUREACCESS_STREAMING, 64, 32);
 }
 
 Screen::~Screen() {
@@ -21,46 +22,32 @@ Screen::~Screen() {
 }
 
 void Screen::update() {
-  // SDL_SetRenderDrawColor(renderer, 35, 35, 35, 255);
-  std::uint32_t pixels[WIDTH * HEIGHT];
-  int pitch;
-  SDL_LockTexture(texture, nullptr, reinterpret_cast<void **>(&pixels), &pitch);
-  for (int i = 0; i < WIDTH * HEIGHT; ++i) {
-    pixels[i] = (graphics[i] == 0) ? 0x000000FF : 0xFFFFFFFF;
+  std::uint32_t pixels[screen_height * screen_width];
+  for (int i = 0; i < 2048; ++i) {
+    pixels[i] = (0x00FFFFFF * graphics[i]) | 0xFF000000;
   }
-  std::cout << "Here" << std::endl;
-  SDL_UnlockTexture(texture);
+  SDL_UpdateTexture(texture, NULL, pixels, 64 * sizeof(Uint32));
+
   SDL_RenderClear(renderer);
-  SDL_RenderCopy(renderer, texture, nullptr, nullptr);
-  SDL_RenderPresent(renderer);
-  SDL_UpdateTexture(texture, NULL, pixels, Screen::screen_width);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
-  std::cout << "Here" << std::endl;
 }
 void Screen::clear() {
-  // std::fill(graphics, graphics + upscale, 0);
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-  SDL_RenderClear(renderer);
-  SDL_RenderPresent(renderer);
+  std::fill(std::begin(graphics), std::end(graphics), 0);
+  // SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  // SDL_RenderClear(renderer);
+  // SDL_RenderPresent(renderer);
 }
-byte Screen::toggle(std::array<byte, 4096> const &memory, byte n, uint16_t i,
-                    byte regx, byte regy) {
-  std::cout << "Toggle Start" << std::endl;
-  byte pixel;
-  byte flipped;
-  for (int j = 0; j < n; j++) {
-    pixel = memory[i + j];
-    for (int k = 0; k < 8; k++) {
-      if (0 != (pixel & (0x80 >> k))) {
-        if (1 == graphics[regx + k + ((regy + j) * 64)]) {
-          flipped = 1;
-        };
-        // Toggle the pixel with XOR
-        graphics[regx + k + (regy + j)] ^= 1;
-      };
+bool Screen::drawPixel(byte xCoord, byte yCoord, byte spriteRow,
+                       byte spriteData) {
+  bool flipped = false;
+  for (int xCol = 0; xCol < 8; xCol++) {
+    if ((spriteData & (0x80 >> xCol)) != 0) {
+      if (graphics[xCoord + xCol + ((yCoord + spriteRow) * 64)] == 1) {
+        flipped = true;
+      }
+      graphics[xCoord + xCol + ((yCoord + spriteRow) * 64)] ^= 1;
     }
   }
-  std::cout << "Toggle End" << std::endl;
   return flipped;
 }
