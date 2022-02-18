@@ -27,7 +27,7 @@ private:
 
   // Graphics Pixels
   std::array<byte, 64 * 32> graphics{};
-  //
+
   // SDL RELATED
   SDL_Window *window;
   SDL_Renderer *renderer;

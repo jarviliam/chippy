@@ -3,7 +3,6 @@
 #include "SDL_render.h"
 #include "SDL_stdinc.h"
 #include <algorithm>
-#include <iostream>
 
 Screen::Screen() {
   window = SDL_CreateWindow("Chippy", SDL_WINDOWPOS_CENTERED,
@@ -32,12 +31,7 @@ void Screen::update() {
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
 }
-void Screen::clear() {
-  std::fill(std::begin(graphics), std::end(graphics), 0);
-  // SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-  // SDL_RenderClear(renderer);
-  // SDL_RenderPresent(renderer);
-}
+void Screen::clear() { std::fill(std::begin(graphics), std::end(graphics), 0); }
 bool Screen::drawPixel(byte xCoord, byte yCoord, byte spriteRow,
                        byte spriteData) {
   bool flipped = false;
